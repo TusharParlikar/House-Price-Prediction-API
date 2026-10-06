@@ -35,6 +35,20 @@ def test_predict_batch_matches_single():
     assert r.json()["predicted_prices"] == [single, single]
 
 
+def test_cors_lets_browser_apps_call_api():
+    # Preflight a browser (e.g. a React app) sends before a cross-origin JSON POST
+    r = client.options(
+        "/predict",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert r.status_code == 200
+    assert r.headers["access-control-allow-origin"] == "*"
+
+
 def test_predict_batch_rejects_empty_list():
     assert client.post("/predict_batch", json={"houses": []}).status_code == 422
 
