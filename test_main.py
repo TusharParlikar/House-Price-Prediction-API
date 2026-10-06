@@ -35,6 +35,10 @@ def test_predict_batch_matches_single():
     assert r.json()["predicted_prices"] == [single, single]
 
 
+def test_predict_batch_rejects_empty_list():
+    assert client.post("/predict_batch", json={"houses": []}).status_code == 422
+
+
 @pytest.mark.parametrize("bad", [-1, float("nan"), float("inf")])
 def test_predict_rejects_invalid_numbers(bad):
     # json.dumps writes NaN/Infinity tokens, which Python's JSON parser accepts

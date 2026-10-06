@@ -38,7 +38,7 @@ class HouseData(BaseModel):
 
 
 class MultipleHouses(BaseModel):
-    houses: List[HouseData]
+    houses: List[HouseData] = Field(min_length=1)
 
 
 # --- Routes ---
