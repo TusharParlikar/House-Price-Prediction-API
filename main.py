@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from train import FEATURES, load_model
+from app.models.price_model import FEATURES, load_model
 
 # --- Load the trained model ---
 model = load_model()

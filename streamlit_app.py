@@ -6,7 +6,7 @@ Loads the same model as the API, so it works without the API running:
 import pandas as pd
 import streamlit as st
 
-from train import FEATURES, load_model
+from app.models.price_model import FEATURES, load_model
 
 st.set_page_config(page_title="House Price Prediction")
 st.title("House Price Prediction")
