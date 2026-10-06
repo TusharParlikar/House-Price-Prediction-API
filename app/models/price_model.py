@@ -1,6 +1,7 @@
 """Model layer: train, save, load and run the house price model."""
 import functools
 import pickle
+import urllib.request
 from pathlib import Path
 
 import pandas as pd
@@ -10,7 +11,8 @@ from sklearn.model_selection import train_test_split
 
 DATA_URL = "https://raw.githubusercontent.com/ageron/handson-ml2/master/datasets/housing/housing.csv"
 ROOT = Path(__file__).resolve().parents[2]
-MODEL_PATH = ROOT / "house_price_model.pkl"
+DATA_PATH = ROOT / "data" / "housing.csv"  # local copy of DATA_URL
+MODEL_PATH = ROOT / "artifacts" / "house_price_model.pkl"
 
 FEATURES = [
     "housing_median_age",
@@ -23,9 +25,17 @@ FEATURES = [
 TARGET = "median_house_value"
 
 
+def load_data():
+    """Return the dataset, downloading it to data/ on first use."""
+    if not DATA_PATH.exists():
+        DATA_PATH.parent.mkdir(exist_ok=True)
+        urllib.request.urlretrieve(DATA_URL, DATA_PATH)
+    return pd.read_csv(DATA_PATH)
+
+
 def train():
     # --- Load real data ---
-    data = pd.read_csv(DATA_URL)
+    data = load_data()
     # total_bedrooms has ~207 missing values out of 20,640 rows - drop them
     data = data.dropna(subset=FEATURES)
 
@@ -41,6 +51,7 @@ def train():
     print(f"MAE:        ${mean_absolute_error(y_test, preds):,.0f}")
 
     # --- Export model ---
+    MODEL_PATH.parent.mkdir(exist_ok=True)
     with open(MODEL_PATH, "wb") as f:
         pickle.dump(model, f)
     print(f"Model saved to {MODEL_PATH}")

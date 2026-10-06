@@ -5,3 +5,7 @@ venv/
 *.pkl
 .idea/
 .vscode/
+
+# Created by train.py: downloaded dataset and trained model
+data/
+artifacts/
