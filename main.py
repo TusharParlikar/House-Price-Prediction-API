@@ -13,7 +13,10 @@ from train import FEATURES, load_model
 # --- Load the trained model ---
 model = load_model()
 
-app = FastAPI(title="House Price Prediction API")
+app = FastAPI(
+    title="House Price Prediction API",
+    description="Predicts the median house value (USD) of a California census block group.",
+)
 
 # Public API: let browser apps (React etc.) on any site call it. No cookies
 # or auth are involved, so allowing every origin exposes nothing extra.
@@ -64,6 +67,15 @@ class MultipleHouses(BaseModel):
     houses: list[HouseData] = Field(min_length=1)
 
 
+# --- Response schemas ---
+class Prediction(BaseModel):
+    predicted_price: float  # median house value in USD
+
+
+class BatchPrediction(BaseModel):
+    predicted_prices: list[float]
+
+
 # --- Routes ---
 @app.get("/")
 def home():
@@ -75,11 +87,11 @@ def run_model(houses):
     return model.predict(features).tolist()
 
 
-@app.post("/predict")
+@app.post("/predict", response_model=Prediction)
 def predict_price(data: HouseData):
     return {"predicted_price": run_model([data])[0]}
 
 
-@app.post("/predict_batch")
+@app.post("/predict_batch", response_model=BatchPrediction)
 def predict_batch(data: MultipleHouses):
     return {"predicted_prices": run_model(data.houses)}
