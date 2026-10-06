@@ -1,19 +1,29 @@
-import pandas as pd
+"""FastAPI application: connects the controllers to the web server.
+
+    uvicorn app.main:app --reload
+"""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.models.price_model import FEATURES, load_model
-from app.models.schemas import BatchPrediction, HouseData, MultipleHouses, Prediction
+from app.controllers import prediction_controller
+from app.models import price_model
 
-# --- Load the trained model ---
-model = load_model()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    price_model.get_model()  # load (or train) the model before the first request
+    yield
+
 
 app = FastAPI(
     title="House Price Prediction API",
     description="Predicts the median house value (USD) of a California census block group.",
+    lifespan=lifespan,
 )
 
 # Public API: let browser apps (React etc.) on any site call it. No cookies
@@ -31,22 +41,4 @@ async def validation_error(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
-# --- Routes ---
-@app.get("/")
-def home():
-    return {"message": "Welcome to the House Price Prediction API"}
-
-
-def run_model(houses):
-    features = pd.DataFrame([h.model_dump() for h in houses], columns=FEATURES)
-    return model.predict(features).tolist()
-
-
-@app.post("/predict", response_model=Prediction)
-def predict_price(data: HouseData):
-    return {"predicted_price": run_model([data])[0]}
-
-
-@app.post("/predict_batch", response_model=BatchPrediction)
-def predict_batch(data: MultipleHouses):
-    return {"predicted_prices": run_model(data.houses)}
+app.include_router(prediction_controller.router)

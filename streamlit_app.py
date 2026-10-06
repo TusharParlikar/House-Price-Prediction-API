@@ -3,10 +3,9 @@
 Loads the same model as the API, so it works without the API running:
     streamlit run streamlit_app.py
 """
-import pandas as pd
 import streamlit as st
 
-from app.models.price_model import FEATURES, load_model
+from app.models import price_model
 
 st.set_page_config(page_title="House Price Prediction")
 st.title("House Price Prediction")
@@ -15,8 +14,6 @@ st.write(
     "(a small neighborhood) from 1990 census data. The defaults are the first "
     "row of the dataset, whose actual value is $452,600."
 )
-
-model = st.cache_resource(load_model)()
 
 with st.form("house"):
     house = {
@@ -33,5 +30,5 @@ with st.form("house"):
     submitted = st.form_submit_button("Predict price")
 
 if submitted:
-    price = model.predict(pd.DataFrame([house], columns=FEATURES))[0]
+    price = price_model.predict([house])[0]
     st.metric("Predicted median house value", f"${price:,.0f}")

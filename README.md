@@ -8,7 +8,7 @@ You give six numbers that describe a census block group (house age, rooms, bedro
 
 | Who | Use | Start it with |
 |-----|-----|---------------|
-| Developers (React, Node, Python, any language) | REST API: send JSON, get JSON | `uvicorn main:app --reload` |
+| Developers (React, Node, Python, any language) | REST API: send JSON, get JSON | `uvicorn app.main:app --reload` |
 | Anyone with a browser | Streamlit web form | `streamlit run streamlit_app.py` |
 
 Both load the same model file, so they return the same prices. The web form doesn't need the API to be running.
@@ -48,7 +48,7 @@ Model saved to .../house_price_model.pkl
 Then start the API, the web form, or both:
 
 ```bash
-uvicorn main:app --reload              # API at http://127.0.0.1:8000, docs at /docs
+uvicorn app.main:app --reload              # API at http://127.0.0.1:8000, docs at /docs
 streamlit run streamlit_app.py         # web form at http://localhost:8501
 ```
 
@@ -137,7 +137,7 @@ The API and the web form deploy separately. Each one trains its model on the ser
 | Setting | Value |
 |---------|-------|
 | Build command | `pip install -r requirements.txt && python train.py` |
-| Start command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| Start command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 
 Share `https://<your-api-host>/docs` with developers. Python 3.11 or newer is required. On Render, set the `PYTHON_VERSION` environment variable if the default is older.
 
@@ -147,7 +147,7 @@ To run the API on your own server with several worker processes, train first so 
 
 ```bash
 python train.py
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 ## How it works

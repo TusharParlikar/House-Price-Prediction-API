@@ -1,4 +1,5 @@
-"""Model layer: train, save and load the house price model."""
+"""Model layer: train, save, load and run the house price model."""
+import functools
 import pickle
 from pathlib import Path
 
@@ -46,11 +47,17 @@ def train():
     return model
 
 
-def load_model():
-    """Load the saved model, training a new one first if the file is missing."""
+@functools.cache
+def get_model():
+    """Load the saved model once per process, training it first if the file is missing."""
     if not MODEL_PATH.exists():
         print(f"{MODEL_PATH.name} not found, training a new model...")
         return train()
     with open(MODEL_PATH, "rb") as f:
         return pickle.load(f)
 
+
+def predict(houses):
+    """Return the predicted median house value (USD) for each house dict."""
+    features = pd.DataFrame(houses, columns=FEATURES)
+    return get_model().predict(features).tolist()
