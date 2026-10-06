@@ -9,12 +9,15 @@ client = TestClient(app)
 
 # First row of the California Housing dataset (actual value: $452,600)
 HOUSE = {
+    "longitude": -122.23,
+    "latitude": 37.88,
     "housing_median_age": 41,
     "total_rooms": 880,
     "total_bedrooms": 129,
     "population": 322,
     "households": 126,
     "median_income": 8.3252,
+    "ocean_proximity": "NEAR BAY",
 }
 
 
@@ -53,9 +56,19 @@ def test_predict_batch_rejects_empty_list():
     assert client.post("/predict_batch", json={"houses": []}).status_code == 422
 
 
-@pytest.mark.parametrize("bad", [-1, float("nan"), float("inf")])
-def test_predict_rejects_invalid_numbers(bad):
+@pytest.mark.parametrize(
+    "field, bad",
+    [
+        ("population", -1),
+        ("population", float("nan")),
+        ("longitude", float("inf")),
+        ("households", 0),  # the model divides by households
+        ("total_rooms", 0),  # and by total_rooms
+        ("ocean_proximity", "BEACH"),
+    ],
+)
+def test_predict_rejects_invalid_input(field, bad):
     # json.dumps writes NaN/Infinity tokens, which Python's JSON parser accepts
-    body = json.dumps({**HOUSE, "population": bad})
+    body = json.dumps({**HOUSE, field: bad})
     r = client.post("/predict", content=body, headers={"Content-Type": "application/json"})
     assert r.status_code == 422

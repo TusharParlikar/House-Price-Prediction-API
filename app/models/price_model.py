@@ -1,13 +1,21 @@
-"""Model layer: train, save, load and run the house price model."""
+"""Model layer: train, save, load and run the house price model.
+
+The model is one scikit-learn pipeline:
+    add ratio features -> one-hot encode ocean_proximity -> gradient boosting
+so callers pass the 9 raw input fields and get a price in USD back.
+"""
 import functools
 import pickle
 import urllib.request
 from pathlib import Path
 
 import pandas as pd
-from sklearn.linear_model import LinearRegression
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 
 DATA_URL = "https://raw.githubusercontent.com/ageron/handson-ml2/master/datasets/housing/housing.csv"
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,12 +23,15 @@ DATA_PATH = ROOT / "data" / "housing.csv"  # local copy of DATA_URL
 MODEL_PATH = ROOT / "artifacts" / "house_price_model.pkl"
 
 FEATURES = [
+    "longitude",
+    "latitude",
     "housing_median_age",
     "total_rooms",
     "total_bedrooms",
     "population",
     "households",
     "median_income",
+    "ocean_proximity",
 ]
 TARGET = "median_house_value"
 
@@ -30,27 +41,59 @@ def load_data():
     if not DATA_PATH.exists():
         DATA_PATH.parent.mkdir(exist_ok=True)
         urllib.request.urlretrieve(DATA_URL, DATA_PATH)
-    return pd.read_csv(DATA_PATH)
+    # total_bedrooms has 207 missing values out of 20,640 rows - drop them
+    return pd.read_csv(DATA_PATH).dropna(subset=FEATURES)
+
+
+def split_data():
+    """Same 80/20 train/test split every time (random_state=42)."""
+    data = load_data()
+    return train_test_split(data[FEATURES], data[TARGET], test_size=0.2, random_state=42)
+
+
+def add_ratio_features(X):
+    """Per-household ratios describe a neighborhood better than raw totals."""
+    X = X.copy()
+    X["rooms_per_household"] = X["total_rooms"] / X["households"]
+    X["bedrooms_per_room"] = X["total_bedrooms"] / X["total_rooms"]
+    X["people_per_household"] = X["population"] / X["households"]
+    return X
+
+
+def build_pipeline():
+    return make_pipeline(
+        FunctionTransformer(add_ratio_features),
+        ColumnTransformer(
+            [("ocean", OneHotEncoder(handle_unknown="ignore", sparse_output=False), ["ocean_proximity"])],
+            remainder="passthrough",
+        ),
+        HistGradientBoostingRegressor(
+            max_iter=1000, learning_rate=0.05, max_leaf_nodes=63, random_state=42
+        ),
+    )
+
+
+def evaluate(model):
+    """R^2 and mean absolute error (USD) on the held-out test set."""
+    _, X_test, _, y_test = split_data()
+    preds = model.predict(X_test)
+    return {"r2": r2_score(y_test, preds), "mae": mean_absolute_error(y_test, preds)}
 
 
 def train():
-    # --- Load real data ---
-    data = load_data()
-    # total_bedrooms has ~207 missing values out of 20,640 rows - drop them
-    data = data.dropna(subset=FEATURES)
+    X_train, _, y_train, _ = split_data()
 
-    # --- Train/test split ---
-    X_train, X_test, y_train, y_test = train_test_split(
-        data[FEATURES], data[TARGET], test_size=0.2, random_state=42
+    # 5-fold cross-validation on the training set: is the error stable?
+    cv_mae = -cross_val_score(
+        build_pipeline(), X_train, y_train, cv=5, scoring="neg_mean_absolute_error"
     )
-    model = LinearRegression().fit(X_train, y_train)
+    print(f"Cross-validation MAE: ${cv_mae.mean():,.0f} (+/- ${cv_mae.std():,.0f})")
 
-    # --- Evaluate on held-out data ---
-    preds = model.predict(X_test)
-    print(f"R^2 score:  {r2_score(y_test, preds):.3f}")
-    print(f"MAE:        ${mean_absolute_error(y_test, preds):,.0f}")
+    model = build_pipeline().fit(X_train, y_train)
+    metrics = evaluate(model)
+    print(f"Test R^2: {metrics['r2']:.3f}")
+    print(f"Test MAE: ${metrics['mae']:,.0f}")
 
-    # --- Export model ---
     MODEL_PATH.parent.mkdir(exist_ok=True)
     with open(MODEL_PATH, "wb") as f:
         pickle.dump(model, f)

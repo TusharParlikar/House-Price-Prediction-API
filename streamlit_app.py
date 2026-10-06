@@ -1,11 +1,15 @@
-"""Web form for the house price model.
+"""View: Streamlit web form on the same model the API uses.
 
-Loads the same model as the API, so it works without the API running:
+It calls the model layer directly, so it works without the API running:
     streamlit run streamlit_app.py
 """
+from typing import get_args
+
 import streamlit as st
+from pydantic import ValidationError
 
 from app.models import price_model
+from app.models.schemas import HouseData, OceanProximity
 
 st.set_page_config(page_title="House Price Prediction")
 st.title("House Price Prediction")
@@ -16,19 +20,38 @@ st.write(
 )
 
 with st.form("house"):
+    left, right = st.columns(2)
     house = {
-        "housing_median_age": st.number_input("Median age of the houses (years)", min_value=0.0, value=41.0),
-        "total_rooms": st.number_input("Total rooms in the block group", min_value=0.0, value=880.0),
-        "total_bedrooms": st.number_input("Total bedrooms in the block group", min_value=0.0, value=129.0),
-        "population": st.number_input("Population", min_value=0.0, value=322.0),
-        "households": st.number_input("Households", min_value=0.0, value=126.0),
-        "median_income": st.number_input(
+        "longitude": left.number_input("Longitude", value=-122.23, key="longitude"),
+        "latitude": right.number_input("Latitude", value=37.88, key="latitude"),
+        "housing_median_age": left.number_input(
+            "Median age of the houses (years)", value=41.0, key="housing_median_age"
+        ),
+        "total_rooms": right.number_input(
+            "Total rooms in the block group", value=880.0, key="total_rooms"
+        ),
+        "total_bedrooms": left.number_input(
+            "Total bedrooms in the block group", value=129.0, key="total_bedrooms"
+        ),
+        "population": right.number_input("Population", value=322.0, key="population"),
+        "households": left.number_input("Households", value=126.0, key="households"),
+        "median_income": right.number_input(
             "Median income (tens of thousands of USD, 8.3 = $83,000)",
-            min_value=0.0, value=8.3252, format="%.4f",
+            value=8.3252, format="%.4f", key="median_income",
+        ),
+        "ocean_proximity": st.selectbox(
+            "Ocean proximity", get_args(OceanProximity), index=3, key="ocean_proximity"
         ),
     }
     submitted = st.form_submit_button("Predict price")
 
 if submitted:
-    price = price_model.predict([house])[0]
-    st.metric("Predicted median house value", f"${price:,.0f}")
+    try:
+        HouseData(**house)  # same validation rules as the API
+    except ValidationError as e:
+        for error in e.errors():
+            field = ".".join(map(str, error["loc"])) or "input"
+            st.error(f"{field}: {error['msg']}")
+    else:
+        price = price_model.predict([house])[0]
+        st.metric("Predicted median house value", f"${price:,.0f}")
