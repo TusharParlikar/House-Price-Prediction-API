@@ -1,14 +1,12 @@
-from typing import Annotated
-
 import pandas as pd
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
 
 from app.models.price_model import FEATURES, load_model
+from app.models.schemas import BatchPrediction, HouseData, MultipleHouses, Prediction
 
 # --- Load the trained model ---
 model = load_model()
@@ -31,49 +29,6 @@ async def validation_error(request: Request, exc: RequestValidationError):
     # written as JSON, so it would turn into a 500. Drop "input" instead.
     errors = [{k: v for k, v in e.items() if k != "input"} for e in exc.errors()]
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
-
-
-# --- Request schemas ---
-# Counts, ages and income can't be negative; NaN/Infinity would crash the model
-NonNegative = Annotated[float, Field(ge=0, allow_inf_nan=False)]
-
-
-class HouseData(BaseModel):
-    # Sample request shown in /docs: first row of the dataset (actual value $452,600)
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "housing_median_age": 41,
-                    "total_rooms": 880,
-                    "total_bedrooms": 129,
-                    "population": 322,
-                    "households": 126,
-                    "median_income": 8.3252,
-                }
-            ]
-        }
-    }
-
-    housing_median_age: NonNegative
-    total_rooms: NonNegative
-    total_bedrooms: NonNegative
-    population: NonNegative
-    households: NonNegative
-    median_income: NonNegative  # in tens of thousands, e.g. 8.3 = $83,000
-
-
-class MultipleHouses(BaseModel):
-    houses: list[HouseData] = Field(min_length=1)
-
-
-# --- Response schemas ---
-class Prediction(BaseModel):
-    predicted_price: float  # median house value in USD
-
-
-class BatchPrediction(BaseModel):
-    predicted_prices: list[float]
 
 
 # --- Routes ---
