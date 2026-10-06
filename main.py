@@ -1,22 +1,13 @@
-import pickle
 from typing import List
 
 import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-FEATURES = [
-    "housing_median_age",
-    "total_rooms",
-    "total_bedrooms",
-    "population",
-    "households",
-    "median_income",
-]
+from train import FEATURES, load_model
 
 # --- Load the trained model ---
-with open("house_price_model.pkl", "rb") as f:
-    model = pickle.load(f)
+model = load_model()
 
 app = FastAPI(title="House Price Prediction API")
 

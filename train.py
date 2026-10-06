@@ -49,5 +49,14 @@ def train():
     return model
 
 
+def load_model():
+    """Load the saved model, training a new one first if the file is missing."""
+    if not MODEL_PATH.exists():
+        print(f"{MODEL_PATH.name} not found, training a new model...")
+        return train()
+    with open(MODEL_PATH, "rb") as f:
+        return pickle.load(f)
+
+
 if __name__ == "__main__":
     train()
