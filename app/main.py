@@ -36,8 +36,9 @@ app.add_middleware(
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exc: RequestValidationError):
     # The default 422 echoes the bad input back, and NaN/Infinity can't be
-    # written as JSON, so it would turn into a 500. Drop "input" instead.
-    errors = [{k: v for k, v in e.items() if k != "input"} for e in exc.errors()]
+    # written as JSON, so it would turn into a 500. Keep type, loc and msg only
+    # ("ctx" repeats msg, and holds an unprintable exception for custom rules).
+    errors = [{k: e[k] for k in ("type", "loc", "msg")} for e in exc.errors()]
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 

@@ -1,14 +1,16 @@
 """Model layer: request and response shapes, validated by Pydantic."""
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # --- Request schemas ---
 # NaN/Infinity would crash the model, so every number must be finite
 NonNegative = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 # The model divides by these (rooms per household, bedrooms per room)
 Positive = Annotated[float, Field(gt=0, allow_inf_nan=False)]
-Coordinate = Annotated[float, Field(allow_inf_nan=False)]
+# The training data only covers California (lon -124.35..-114.31, lat 32.54..41.95)
+Longitude = Annotated[float, Field(ge=-124.5, le=-114.0, allow_inf_nan=False)]
+Latitude = Annotated[float, Field(ge=32.5, le=42.0, allow_inf_nan=False)]
 OceanProximity = Literal["<1H OCEAN", "INLAND", "ISLAND", "NEAR BAY", "NEAR OCEAN"]
 
 
@@ -32,8 +34,8 @@ class HouseData(BaseModel):
         }
     }
 
-    longitude: Coordinate
-    latitude: Coordinate
+    longitude: Longitude
+    latitude: Latitude
     housing_median_age: NonNegative
     total_rooms: Positive
     total_bedrooms: NonNegative
@@ -41,6 +43,13 @@ class HouseData(BaseModel):
     households: Positive
     median_income: NonNegative  # in tens of thousands, e.g. 8.3 = $83,000
     ocean_proximity: OceanProximity
+
+    @model_validator(mode="after")
+    def bedrooms_within_rooms(self):
+        # Never true in the training data; a sign of swapped or mistyped fields
+        if self.total_bedrooms > self.total_rooms:
+            raise ValueError("total_bedrooms can't be greater than total_rooms")
+        return self
 
 
 class MultipleHouses(BaseModel):

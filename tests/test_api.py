@@ -72,3 +72,17 @@ def test_predict_rejects_invalid_input(field, bad):
     body = json.dumps({**HOUSE, field: bad})
     r = client.post("/predict", content=body, headers={"Content-Type": "application/json"})
     assert r.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "field, bad",
+    [("longitude", -80.0), ("latitude", 50.0)],  # New York-ish, Canada-ish
+)
+def test_predict_rejects_points_outside_california(field, bad):
+    assert client.post("/predict", json={**HOUSE, field: bad}).status_code == 422
+
+
+def test_predict_rejects_more_bedrooms_than_rooms():
+    r = client.post("/predict", json={**HOUSE, "total_rooms": 100, "total_bedrooms": 500})
+    assert r.status_code == 422
+    assert "total_bedrooms" in r.json()["detail"][0]["msg"]
