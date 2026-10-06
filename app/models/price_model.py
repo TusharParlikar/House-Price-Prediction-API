@@ -34,6 +34,9 @@ FEATURES = [
     "ocean_proximity",
 ]
 TARGET = "median_house_value"
+# Quality bar: train() refuses to save a model whose test error is above this.
+# Current model: ~$29,400. Old linear model: $56,642.
+MAX_TEST_MAE = 35_000
 
 
 def load_data():
@@ -93,6 +96,11 @@ def train():
     metrics = evaluate(model)
     print(f"Test R^2: {metrics['r2']:.3f}")
     print(f"Test MAE: ${metrics['mae']:,.0f}")
+    if metrics["mae"] > MAX_TEST_MAE:
+        raise RuntimeError(
+            f"Test MAE ${metrics['mae']:,.0f} is above the ${MAX_TEST_MAE:,} bar; "
+            "model not saved. Check the data source and training settings."
+        )
 
     MODEL_PATH.parent.mkdir(exist_ok=True)
     with open(MODEL_PATH, "wb") as f:
