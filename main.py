@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 
 import pandas as pd
 from fastapi import FastAPI, Request
@@ -38,7 +38,7 @@ class HouseData(BaseModel):
 
 
 class MultipleHouses(BaseModel):
-    houses: List[HouseData] = Field(min_length=1)
+    houses: list[HouseData] = Field(min_length=1)
 
 
 # --- Routes ---
@@ -47,19 +47,16 @@ def home():
     return {"message": "Welcome to the House Price Prediction API"}
 
 
+def run_model(houses):
+    features = pd.DataFrame([h.model_dump() for h in houses], columns=FEATURES)
+    return model.predict(features).tolist()
+
+
 @app.post("/predict")
 def predict_price(data: HouseData):
-    features = pd.DataFrame([[getattr(data, f) for f in FEATURES]], columns=FEATURES)
-    prediction = model.predict(features)
-    return {"predicted_price": float(prediction[0])}
+    return {"predicted_price": run_model([data])[0]}
 
 
 @app.post("/predict_batch")
 def predict_batch(data: MultipleHouses):
-    features = pd.DataFrame(
-        [[getattr(house, f) for f in FEATURES] for house in data.houses],
-        columns=FEATURES,
-    )
-    
-    predictions = model.predict(features)
-    return {"predicted_prices": predictions.tolist()}
+    return {"predicted_prices": run_model(data.houses)}
