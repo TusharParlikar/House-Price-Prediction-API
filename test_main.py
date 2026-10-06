@@ -1,3 +1,6 @@
+import json
+
+import pytest
 from fastapi.testclient import TestClient
 
 from main import app
@@ -30,3 +33,11 @@ def test_predict_batch_matches_single():
     assert r.status_code == 200
     single = client.post("/predict", json=HOUSE).json()["predicted_price"]
     assert r.json()["predicted_prices"] == [single, single]
+
+
+@pytest.mark.parametrize("bad", [-1, float("nan"), float("inf")])
+def test_predict_rejects_invalid_numbers(bad):
+    # json.dumps writes NaN/Infinity tokens, which Python's JSON parser accepts
+    body = json.dumps({**HOUSE, "population": bad})
+    r = client.post("/predict", content=body, headers={"Content-Type": "application/json"})
+    assert r.status_code == 422
