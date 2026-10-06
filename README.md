@@ -33,7 +33,7 @@ cd House-Price-Prediction-API
 python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # macOS / Linux
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 python train.py                # optional: the apps train on first start if needed
 ```
 

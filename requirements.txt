@@ -1,13 +1,7 @@
-# API and model
+# Needed to run the API and the Streamlit form (what a server installs)
 fastapi==0.142.2
 pydantic==2.13.5
 uvicorn==0.54.0
 pandas==3.0.6
 scikit-learn==1.9.1
-
-# Web interface
 streamlit==1.65.0
-
-# Tests
-pytest==9.1.1
-httpx2==2.13.1
