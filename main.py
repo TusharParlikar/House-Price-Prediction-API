@@ -29,6 +29,22 @@ NonNegative = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 
 
 class HouseData(BaseModel):
+    # Sample request shown in /docs: first row of the dataset (actual value $452,600)
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "housing_median_age": 41,
+                    "total_rooms": 880,
+                    "total_bedrooms": 129,
+                    "population": 322,
+                    "households": 126,
+                    "median_income": 8.3252,
+                }
+            ]
+        }
+    }
+
     housing_median_age: NonNegative
     total_rooms: NonNegative
     total_bedrooms: NonNegative
