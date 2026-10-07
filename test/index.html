@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  Plain HTML/CSS/JS page for trying the API by hand.
+  1. Start the API:  uvicorn app.main:app --reload
+  2. Open this file in a browser (double-click it). No build step, no server needed.
+  3. Change "API URL" to your deployed address to test the live API.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>House Price API Tester</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>House Price API Tester</h1>
+    <p class="intro">
+      Sends the form to <code>POST /predict</code> and shows the answer.
+      The defaults are the first row of the dataset (actual value $452,600).
+    </p>
+
+    <!-- Where the API runs. Saved in the browser so you only type it once. -->
+    <label class="full">API URL
+      <input id="api-url" type="url" value="http://127.0.0.1:8000" required>
+    </label>
+
+    <!-- One input per field the API expects. Names match the JSON keys. -->
+    <form id="house-form">
+      <label>Longitude <input name="longitude" type="number" step="any" value="-122.23" required></label>
+      <label>Latitude <input name="latitude" type="number" step="any" value="37.88" required></label>
+      <label>Median house age (years) <input name="housing_median_age" type="number" step="any" value="41" required></label>
+      <label>Total rooms <input name="total_rooms" type="number" step="any" value="880" required></label>
+      <label>Total bedrooms <input name="total_bedrooms" type="number" step="any" value="129" required></label>
+      <label>Population <input name="population" type="number" step="any" value="322" required></label>
+      <label>Households <input name="households" type="number" step="any" value="126" required></label>
+      <label>Median income (8.3 = $83,000) <input name="median_income" type="number" step="any" value="8.3252" required></label>
+      <label class="full">Ocean proximity
+        <select name="ocean_proximity">
+          <option>&lt;1H OCEAN</option>
+          <option>INLAND</option>
+          <option>ISLAND</option>
+          <option selected>NEAR BAY</option>
+          <option>NEAR OCEAN</option>
+        </select>
+      </label>
+      <button type="submit" class="full">Predict price</button>
+    </form>
+
+    <!-- Result or error goes here. aria-live makes screen readers announce it. -->
+    <output id="result" aria-live="polite"></output>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
