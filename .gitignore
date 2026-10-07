@@ -1,12 +1,29 @@
+# Python
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Virtual environments
 venv/
 .venv/
-*.pkl
+
+# Notebook autosaves
+.ipynb_checkpoints/
+
+# Secrets and local settings
+.env
+.streamlit/secrets.toml
+
+# Editors and OS
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 # Created by train.py: downloaded dataset and trained model
 data/
 artifacts/
+*.pkl
