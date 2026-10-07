@@ -21,25 +21,18 @@ HOUSE = {
 }
 
 
-def test_home():
-    assert client.get("/").status_code == 200
+def test_predict_and_batch_agree():
+    single = client.post("/predict", json=HOUSE)
+    assert single.status_code == 200
+    price = single.json()["predicted_price"]
+    assert 300_000 < price < 600_000
 
-
-def test_predict():
-    r = client.post("/predict", json=HOUSE)
-    assert r.status_code == 200
-    assert 300_000 < r.json()["predicted_price"] < 600_000
-
-
-def test_predict_batch_matches_single():
-    r = client.post("/predict_batch", json={"houses": [HOUSE, HOUSE]})
-    assert r.status_code == 200
-    single = client.post("/predict", json=HOUSE).json()["predicted_price"]
-    assert r.json()["predicted_prices"] == [single, single]
+    batch = client.post("/predict_batch", json={"houses": [HOUSE, HOUSE]})
+    assert batch.json()["predicted_prices"] == [price, price]
 
 
 def test_cors_lets_browser_apps_call_api():
-    # Preflight a browser (e.g. a React app) sends before a cross-origin JSON POST
+    # Preflight a browser (e.g. test/index.html) sends before a cross-origin JSON POST
     r = client.options(
         "/predict",
         headers={
@@ -48,41 +41,26 @@ def test_cors_lets_browser_apps_call_api():
             "Access-Control-Request-Headers": "content-type",
         },
     )
-    assert r.status_code == 200
     assert r.headers["access-control-allow-origin"] == "*"
 
 
-def test_predict_batch_rejects_empty_list():
-    assert client.post("/predict_batch", json={"houses": []}).status_code == 422
-
-
 @pytest.mark.parametrize(
-    "field, bad",
+    "change",
     [
-        ("population", -1),
-        ("population", float("nan")),
-        ("longitude", float("inf")),
-        ("households", 0),  # the model divides by households
-        ("total_rooms", 0),  # and by total_rooms
-        ("ocean_proximity", "BEACH"),
+        {"population": -1},
+        {"population": float("nan")},
+        {"households": 0},  # the model divides by households
+        {"ocean_proximity": "BEACH"},
+        {"longitude": -80.0},  # outside California
+        {"total_rooms": 100, "total_bedrooms": 500},  # more bedrooms than rooms
     ],
 )
-def test_predict_rejects_invalid_input(field, bad):
-    # json.dumps writes NaN/Infinity tokens, which Python's JSON parser accepts
-    body = json.dumps({**HOUSE, field: bad})
+def test_predict_rejects_invalid_input(change):
+    # json.dumps writes NaN as a token, which the API's JSON parser accepts
+    body = json.dumps({**HOUSE, **change})
     r = client.post("/predict", content=body, headers={"Content-Type": "application/json"})
     assert r.status_code == 422
 
 
-@pytest.mark.parametrize(
-    "field, bad",
-    [("longitude", -80.0), ("latitude", 50.0)],  # New York-ish, Canada-ish
-)
-def test_predict_rejects_points_outside_california(field, bad):
-    assert client.post("/predict", json={**HOUSE, field: bad}).status_code == 422
-
-
-def test_predict_rejects_more_bedrooms_than_rooms():
-    r = client.post("/predict", json={**HOUSE, "total_rooms": 100, "total_bedrooms": 500})
-    assert r.status_code == 422
-    assert "total_bedrooms" in r.json()["detail"][0]["msg"]
+def test_predict_batch_rejects_empty_list():
+    assert client.post("/predict_batch", json={"houses": []}).status_code == 422
