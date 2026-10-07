@@ -20,12 +20,14 @@ async def lifespan(app: FastAPI):
     yield
 
 
+# Step 1: create the app. The title and description show up in /docs.
 app = FastAPI(
     title="House Price Prediction API",
     description="Predicts the median house value (USD) of a California census block group.",
     lifespan=lifespan,
 )
 
+# Step 2: allow cross-site calls.
 # Public API: let browser apps (React etc.) on any site call it. No cookies
 # or auth are involved, so allowing every origin exposes nothing extra.
 app.add_middleware(
@@ -33,6 +35,7 @@ app.add_middleware(
 )
 
 
+# Step 3: clean 422 errors for bad input
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exc: RequestValidationError):
     # The default 422 echoes the bad input back, and NaN/Infinity can't be
@@ -42,4 +45,5 @@ async def validation_error(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
+# Step 4: register the endpoints (/, /predict, /predict_batch)
 app.include_router(prediction_controller.router)

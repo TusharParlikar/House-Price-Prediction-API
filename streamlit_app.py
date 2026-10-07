@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from app.models import price_model
 from app.models.schemas import HouseData, OceanProximity
 
+# Step 1: page header
 st.set_page_config(page_title="House Price Prediction")
 st.title("House Price Prediction")
 st.write(
@@ -19,6 +20,8 @@ st.write(
     "row of the dataset, whose actual value is $452,600."
 )
 
+# Step 2: input form. Field names match the API's JSON keys, so the same dict
+# goes to validation and to the model. A form only reruns the app on submit.
 with st.form("house"):
     left, right = st.columns(2)
     house = {
@@ -45,6 +48,7 @@ with st.form("house"):
     }
     submitted = st.form_submit_button("Predict price")
 
+# Step 3: on submit, validate with the API's rules, then predict and show the price
 if submitted:
     try:
         HouseData(**house)  # same validation rules as the API
