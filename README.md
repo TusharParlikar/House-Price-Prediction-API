@@ -154,7 +154,7 @@ requirements-dev.txt                 Adds pytest and Jupyter
 python -m pytest
 ```
 
-The tests cover every endpoint, check that single and batch predictions agree, check CORS, check the `422` errors for bad input, check the model's accuracy, and check that the web form shows the same price as the model.
+The tests check that single and batch predictions agree, that CORS lets browser apps call the API, that bad input gets a `422`, and that the web form shows the same price as the model. `train.py` checks accuracy itself: it refuses to save a model whose test error is above $35,000.
 
 ## Limitations
 
